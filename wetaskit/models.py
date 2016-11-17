@@ -134,19 +134,6 @@ class User(Base):
         self.password = pbkdf2_sha256.encrypt(password, rounds=200000, salt_size=16) if password else str(uuid.uuid4()) #TODO - Taking a lot of time
         self.user_key = str(uuid.uuid4())
 
-    # @classmethod
-    # def fb_init(cls,fb_obj,stripe_customer_id):
-    #     u = cls()
-    #     u.first_name = fb_obj['first_name']
-    #     u.last_name = fb_obj['last_name']
-    #     u.mail = fb_obj['email']
-    #     u.dob = datetime.datetime.strptime(fb_obj.get('birthday'),"%m/%d/%Y") if 'birthday' in fb_obj else None
-    #     u.social_login_type  = 1
-    #     u.social_id = fb_obj['id']
-    #     u.is_verified = True
-    #     u.stripe_customer_id = stripe_customer_id
-    #     return u
-
     @classmethod
     def by_email(cls,mail):
         return DBSession.query(User).filter(User.mail == mail).first()
@@ -170,56 +157,9 @@ class User(Base):
         u['created_at_utc'] = self.created_at.isoformat()
         u['thumbs_up'] = self.thumbs_up
         u['thumbs_down'] = self.thumbs_down
-        #u['has_cc'] = True if self.has_cc else False
-        #u['is_company'] = True if self.company_id else False
         u['user_key'] = self.user_key
         u['last_use'] = self.last_use
         
-        # re_sql = '''
-        # SELECT a.review, a.stars, a.created_at, b.title, b.category,  c.id as c_id
-        # FROM review AS a
-        # JOIN job AS b 
-        # ON a.job_id = b.id
-        # JOIN user AS c
-        # ON a.review_by = c.id
-        # JOIN job_application AS d
-        # ON d.employee_id = '''+str(self.id)+''' AND d.job_id = a.job_id
-        # WHERE a.review_for = d.employee_id
-        # ORDER BY a.created_at DESC
-        # LIMIT 1
-        # '''
-        # review = []
-        # for a_review, a_stars, a_created_at, b_title, b_category, c_id in DBSession.execute(re_sql):
-        #     re = {}
-        #     re['review'] = a_review
-        #     re['stars'] = a_stars
-        #     re['created_at'] = a_created_at.isoformat()
-        #     re['job_title'] = b_title
-        #     re['job_category'] = b_category
-        #     re['review_by'] = User.by_id(c_id).info()
-        #     review.append(re)
-
-        # u['review'] = review
-
-        # if own_info:
-        #     u['mail'] = self.mail
-
-        # sql = '''
-        # SELECT DISTINCT(a.category_id) , (SELECT COUNT(*) FROM job_application JOIN job ON job_application.job_id = job.id WHERE job.category = a.category_id AND job_application.status >= 8 AND job_application.employee_id = a.user_id)
-        # FROM skill_category AS a
-        # WHERE a.user_id = '''+str(self.id)+'''
-        # '''
-
-        # skill_to_cat = []
-
-        # for cat, count in DBSession.execute(sql):
-        #     if cat:
-        #         d = {}
-        #         d['category'] = cat
-        #         d['num_jobs_completed'] = count
-        #         skill_to_cat.append(d)
-
-        # u['skills'] = skill_to_cat
         return u
 
     def info(self):
@@ -275,8 +215,6 @@ class User(Base):
             return True
         else:
             return False
-
-#Index('user_index', User.mail,  mysql_length=255) MySQL Indexes the Unique Key http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html#mysql-unique-constraints-and-reflection
 
 #Each Job that is created
 class Job(Base):
@@ -425,69 +363,12 @@ class TempJobApplication(Base):
         job = Job.by_id(jobId)
         self.employee_id = employee_id
         self.employer_id = employer_id
-        #self.modified_pay = pay
-        #self.modified_hours = modified_hours
         self.comment = comment if comment else ""
-        #self.status = 1
-        #self.application_key = str(uuid.uuid4())
-
-    
-    # def serialize(self):
-
-    #     sql = '''
-    #     SELECT a.id, a.comment, a.status, a.modified_pay, a.seeker_wti_fees, a.stripe_fees, a.wti_fees, a.total_amount , a.modified_hours,a.application_key, b.id, b.title , b.desc, b.latitude, b.longitude , b.location_name, c.id as c_id, c.first_name, c.last_name,c.profile_pic,c.thumbs_up,c.thumbs_down, c.company_id, d.id as d_id, d.first_name, d.last_name,d.profile_pic,d.thumbs_up,d.thumbs_down, d.company_id
-    #     FROM job_application AS a
-    #     JOIN job AS b
-    #     ON a.job_id = b.id
-    #     JOIN user AS c
-    #     ON a.employee_id = c.id
-    #     JOIN user as d 
-    #     ON a.employer_id = d.id
-    #     WHERE a.id = '''+str(self.id)+''' LIMIT 1       
-    #     '''
-    #     id, comment, status, modified_pay,seeker_wti_fees,stripe_fees,wti_fees,total_amount, modified_hours, application_key, job_id , job_title, job_desc, job_lat , job_long , job_location, employee_id , employee_fname, employee_lname , employee_ppic, employee_thumbs_up, employee_thumbs_down, employee_company_id, employer_id , employer_fname, employer_lname , employer_ppic, employer_thumbs_up, employer_thumbs_down, employer_company_id = DBSession.execute(sql).fetchone()
-        
-    #     application = {}
-    #     application['application_id'] = id
-    #     application['employee'] = get_applicants_info(employee_id , employee_fname, employee_lname , employee_ppic, employee_thumbs_up, employee_thumbs_down, employee_company_id)
-    #     application['employer'] = get_user_info(employer_id , employer_fname, employer_lname , employer_ppic, employer_thumbs_up, employer_thumbs_down, employer_company_id)
-    #     application['pay'] = modified_pay
-    #     application['seeker_wti_fees'] = seeker_wti_fees
-    #     #application['stripe_fees'] = stripe_fees
-    #     application['wti_fees'] = wti_fees
-    #     application['total_amount'] = total_amount
-    #     application['hours'] = modified_hours
-    #     application['comment'] = comment
-    #     application['status'] = status
-    #     application['job_id'] = job_id
-    #     application['job_title'] = job_title
-    #     application['job_desc'] = job_desc
-    #     application['job_images'] = Job.by_id(job_id).get_images()
-    #     application['job_latitude'] = job_lat
-    #     application['job_longitude'] = job_long
-    #     application['job_location'] = job_location
-    #     application['application_key'] = application_key
-    #     return application
-
 
     @classmethod
     def by_employee_id(cls,id):
         return DBSession.query(TempJobApplication).filter(TempJobApplication.employee_id == id)
 
-    # @classmethod
-    # def by_employer_id(cls,id):
-    #     return DBSession.query(TempJobApplication).filter(TempJobApplication.employer_id == id)
-
-    # @classmethod
-    # def by_jobid(cls,id):
-    #     return DBSession.query(TempJobApplication).filter(TempJobApplication.job_id == id)
-
-    # @classmethod
-    # def by_id(cls,id):
-    #     return DBSession.query(TempJobApplication).filter(TempJobApplication.id == id).first()
-
-    # def get_actived_at(self):
-    #     self.actived_at = datetime.datetime.utcnow()
 
 Index('temp_job_appl_index', TempJobApplication.job_id, TempJobApplication.employee_id,unique=True)
 
@@ -552,7 +433,6 @@ class JobApplication(Base):
         application['employer'] = get_user_info(employer_id , employer_fname, employer_lname , employer_ppic, employer_thumbs_up, employer_thumbs_down, employer_company_id)
         application['pay'] = modified_pay
         application['seeker_wti_fees'] = seeker_wti_fees
-        #application['stripe_fees'] = stripe_fees
         application['wti_fees'] = wti_fees
         application['total_amount'] = total_amount
         application['hours'] = modified_hours

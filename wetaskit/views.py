@@ -255,10 +255,6 @@ def v1_user_post(request):
     first_name = request.json_body.get('first_name')
     last_name = request.json_body.get('last_name')
     last_use = request.json_body.get('last_use')
-    # if request.json_body.get('promote_code'):
-    #     p_code = request.json_body.get('promote_code')
-    #     if not p_code.lower() in pc:
-    #         return response(code='E006',extra = 'Invalid Promotion Code', extra_finn='Virheellinen promootiokoodi')
 
     if not (email and password and first_name and last_name):
         return response(code='E005',extra='Needs Email, Password, Full Name', extra_finn='Vaatii sähköpostin, salasanan ja koko nimen')
@@ -434,53 +430,6 @@ def v1_user_login(request):
 
     return response(code='S002',extra='success',extra_finn='Valmis',wti_token=s.auth_token,data = user.serialize(own_info=True))
     
-# @view_config(route_name=v1+'_user_login_fb', renderer='json', request_method='POST')
-# def v1_user_login_fb(request):
-#     '''
-#     Logs in a user, using his fb_token, returns a wti_token if logged in successfully
-#     else returns error with message
-#     ''' 
-
-#     fb_token = request.json_body.get('fb_token')
-#     device_id = request.json_body.get('device_id')
-#     if not fb_token:
-#         return response(code ='E009',extra='Needs fb_token')    
-   
-#     args = {'fields' : 'id,birthday,first_name,last_name,email' }
-
-#     try:
-#         graph = GraphAPI(fb_token)
-#         details = graph.get_object("me",**args)
-
-#         if not 'email' in details:
-#             return response(code ='E009',extra='Needs Email Permission')   
-
-#         user = User.by_email(details['email'])
-
-#         if not user: #User does not exist, add him
-#             customer = stripe.Customer.create(
-#                 description='stripe customer',
-#                 email=details['email']
-#             )            
-#             user = User.fb_init(details,customer.id)
-#             DBSession.add(user)
-#             DBSession.flush() #To generate the primary key
-#             #send_welcome_mail(request.registry['mailer'],user.mail,user.first_name)
-
-#         user.social_id  = details['id']
-#         user.latitude = request.json_body.get('latitude') if request.json_body.get('latitude') else user.latitude
-#         user.longitude = request.json_body.get('longitude') if request.json_body.get('longitude') else user.longitude
-
-#         ##TODO : Should we update the user details from Facebook ? What if someone is logged in from his normal account
-
-#         s = Session.generate(user.id)
-#         DBSession.add(s)
-
-#         return response(code='S002',wti_token=s.auth_token,extra='Successfully logged In',data = user.serialize(own_info=True))
-
-#     except GraphAPIError as e:
-#         return response(code='E019', extra='Invalid FB Token')
-
 @view_config(route_name=v1+'_user_logout', renderer='json', request_method='POST')
 def v1_user_logout(request):
     '''
@@ -586,8 +535,6 @@ def v1_user_verify(request):
             fb.post('/users/'+u.user_key+'/applications', application.application_key)
 
             DBSession.delete(temp_application)
-    #Return Normal response as he will be looking at it in his browser
-    # return pyResponse('Vahvistus onnistui! Voit jatkaa sovelluksen käyttöä. <br><br> Successfully Verified. Continue to use the application')
     return HTTPFound(location='/web/verified.html')
 
 @view_config(route_name=v1+'_user_reset', renderer='json', request_method='POST')
@@ -703,12 +650,6 @@ def v1_job_post(request):
     if not user:
         return response(code='E010',extra='Not logged in or you are not a user',extra_finn='Et ole vahvistanut tiliäsi')
 
-    #TODO: Uncomment
-    # if not user.is_company():
-    #     customer = stripe.Customer.retrieve(user.stripe_customer_id)        
-    #     if not customer.sources.all().get('data'):
-    #         return response(code='E013',extra='You need to add your credit card before posting a job',extra_finn='Sinun tulee syöttää pankkikorttisi tiedot ennen työn antamista')
-
     title = request.json_body.get('title')
     desc = request.json_body.get('description')
     pay = request.json_body.get('pay')
@@ -729,14 +670,6 @@ def v1_job_post(request):
     ##Validate if enough parameters are there or not
     if not(title and pay and hours and latitude is not None and longitude is not None and category):
         return response(code='E009',extra="All parameters are not present",extra_finn='Täytä kaikki vaadittavat kentät')
-
-    # for title_key in filtering_out_keywords:
-    #     if title_key.get('key') in title.lower():
-    #         return response(code='E009',extra='The title is not valid, please put another title', extra_finn='Otsikko sisältää epäasiallisen sanan')
-
-    # for desc_key in filtering_out_keywords:
-    #     if desc_key.get('key') in desc.lower():
-    #         return response(code='E009',extra='The description is not valid, please put another description', extra_finn='Kuvaus sisältää epäasiallisen sanan')
 
     #Now create a job
     j = Job(user.id,title,desc,pay,category,hours,expires_on,latitude,longitude,location)
@@ -967,7 +900,6 @@ def v1_job_posted(request):
         d['created_at'] = created_at.isoformat()
         d['num_applicants'] = num_applicants
         d['accepted_application'] = accepted_application
-        #d['review_done'] = review_done
         if status == 0:
             data['status_0'].append(d)
         elif status == 1:
@@ -1085,9 +1017,7 @@ def v1_jobcards(request):
     has_applied < 1
     AND 
     appl_status < 2'''
-    # AND 
-    # a.expires_on >= "'''+datetime.datetime.utcnow().isoformat()+'''"
-    # '''
+
     if keyword_list:
        sql = sql + '''
        AND occurrences >= 1
@@ -1114,119 +1044,10 @@ def v1_jobcards(request):
             d['distance_to_job'] = round(distance(device_lat,device_long,latitude,longitude),2)
         d['location_name'] = job_location_name if job_location_name else ''
         d['employer'] = get_user_info(posted_by,first_name,last_name,profile_pic,thumbs_up_employer,thumbs_down_employer, True if company_id else False)
-        # d['images'] = []
-        # if urls:
-        #     url_array = urls.split(',')
-        #     for url in url_array:
-        #         d['images'].append(url)
-        # else:
-        #     d['images'].append(default_job_pic)
-        # d['negotiable'] = j.negotiable
         data.append(d)
     bubbleSort(data)
     return response(code='S002',wti_token=request.json_body.get('wti_token'),extra='Success',extra_finn='Valmis', data = data)
 
-# @view_config(route_name=v1+'_quick_jobcards', renderer='json',request_method='POST')
-# def v1_jobcards_quick(request):
-#     '''
-#     Gets all the jobcards according to lat and long
-#     ''' 
-    
-#     user = get_authenticated_user(request)
-
-#     user_id = 99999 #Hack to fake the userid if not logged in
-#     if user:
-#         user_id = user.id
-
-#     left_top_lat = request.json_body.get('left_top_lat')
-#     left_top_long = request.json_body.get('left_top_long')
-#     right_bottom_lat = request.json_body.get('right_bottom_lat')
-#     right_bottom_long = request.json_body.get('right_bottom_long')
-
-#     page_num = request.json_body.get('page',0)
-
-#     category_list = request.json_body.get('category_list')
-#     keyword_list = request.json_body.get('keyword_list')
-
-#     if not (left_top_lat is not None and left_top_long is not None and right_bottom_lat is not None and right_bottom_long is not None):
-#         return response(code='E009',extra='Missing parameters')
-
-
-#     sql = '''
-#     SELECT a.id,a.title,a.pay,a.posted_by,a.expires_on,a.category, a.latitude, a.longitude,a.quick ,GROUP_CONCAT(b.url),c.first_name, c.last_name,c.profile_pic,c.social_id, c.stars_as_employee, c.rated_by_as_employee, c.stars_as_employer, c.rated_by_as_employer, c.company_id,
-#     (SELECT COUNT(*) FROM job_application WHERE job_application.job_id = a.id AND job_application.employee_id = '''+str(user_id)+''') as has_applied,
-#     (SELECT IFNULL(MAX(job_application.status),0) FROM job_application WHERE job_application.job_id = a.id) as appl_status,
-#     (
-#         '''
-#     if keyword_list:
-#         sql = sql + '''
-#         + 
-#         '''.join(['''((LENGTH(CONCAT(LOWER(a.title),LOWER(a.desc))) - LENGTH(REPLACE(CONCAT(LOWER(a.title),LOWER(a.desc)),"'''+unicode(key.lower())+'''", ""))) / LENGTH("'''+unicode(key.lower())+'''"))''' for key in keyword_list])
-#     else:
-#         sql = sql + '''0'''
-
-#     sql = sql +'''
-#     ) AS occurrences
-#     FROM job AS a 
-#     LEFT JOIN job_image AS b 
-#     ON
-#     a.id = b.job_id
-#     LEFT JOIN user as c
-#     ON
-#     a.posted_by = c.id
-#     WHERE 
-#     (a.latitude BETWEEN '''+str(left_top_lat)+''' AND '''+str(right_bottom_lat)+''') 
-#     AND 
-#     (a.longitude BETWEEN '''+str(left_top_long)+''' AND '''+str(right_bottom_long)+''') 
-#     AND a.posted_by != '''+str(user_id)
-    
-#     if category_list:
-#         sql = sql + '''
-#         AND a.category IN ('''+ ','.join([str(a) for a in category_list]) + ''') '''
-
-#     sql = sql + '''
-#     GROUP BY a.id
-#     HAVING 
-#     has_applied < 1
-#     AND 
-#     appl_status < 3
-#     AND 
-#     a.expires_on >= "'''+datetime.datetime.utcnow().isoformat()+'''"
-#     AND
-#     a.quick = 1    
-#     '''
-
-#     sql = sql + ''' ORDER BY occurrences DESC'''
-#     if page_num is not None:
-#         sql = sql + ''' LIMIT '''+str(page_num*25)+''', 25'''
-
-#     data = []
-#     for id, title, pay, posted_by, expires_on, j_category, latitude, longitude,quick ,urls, first_name, last_name, profile_pic, social_id, stars_as_employee, rated_by_as_employee, stars_as_employer, rated_by_as_employer, company_id, has_applied, appl_status, occurrences in DBSession.execute(sql):
-#         if not id:
-#             continue
-
-#         d = {}
-#         d['job_id'] = id
-#         d['title'] = title
-#         d['pay'] = pay
-#         d['expires_on'] = expires_on.isoformat() if expires_on else ''
-#         d['distance'] = 5 #TODO DELETE
-#         d['category'] = j_category
-#         d['latitude'] = latitude
-#         d['longitude'] = longitude
-#         d['quick'] = quick
-#         d['posted_by'] = get_user_info(posted_by,first_name,last_name,profile_pic,social_id, stars_as_employee, rated_by_as_employee, stars_as_employer, rated_by_as_employer,True if company_id else False)
-#         # d['images'] = []
-#         # if urls:
-#         #     url_array = urls.split(',')
-#         #     for url in url_array:
-#         #         d['images'].append(url)
-#         # else:
-#         #     d['images'].append(default_job_pic)
-#         # d['negotiable'] = j.negotiable
-#         data.append(d)
-
-#     return response(code='S002',wti_token=request.json_body.get('wti_token'),extra='Success', data = data)
 
 @view_config(route_name=v1+'_job_applicants', renderer='json',request_method='POST')
 def v1_job_applicants(request):
@@ -1317,10 +1138,6 @@ def v1_application_post(request):
 
         return response(code='E012',extra='The application has been saved',extra_finn='Hakemus on tallennettu')
 
-    #TODO: Uncomment
-    # if not user.is_company():
-    #     if not user.has_stripe_account():
-    #         return response(code='E013',extra='Please add your bank account in setting in order to receive job payment',extra_finn='Ole hyvä ja lisää pankkitilisi asetuksissa vastaanottaaksesi maksuja')
 
 
     jobId = request.json_body.get('job_id')
@@ -1328,13 +1145,6 @@ def v1_application_post(request):
     modified_hours = request.json_body.get('modified_hours')
     comment = request.json_body.get('comment')
 
-    # if modified_pay > 50:
-    #     return response(code='E009',extra='The job payment cannot be higher than 50',extra_finn='Maksu työtehvästä ei voi olla yli 50.00 euroa')
-
-    # if comment:
-    #     for cmt_key in filtering_out_keywords:
-    #         if cmt_key.get('key') in comment.lower():
-    #             return response(code='E009',extra='The comment contains inappropriate words',extra_finn='Lause sisältää epäasiallisia sanoja')
 
     job = Job.by_id(jobId)
 
@@ -1356,10 +1166,6 @@ def v1_application_post(request):
 
 
 
-    # saved_jobs = SavedJob.by_user_id(user.id)
-    # for jobs in saved_jobs
-    #     if jobs.id == jobId:
-    #         DBSession.delete(saved_job)
     DBSession.query(SavedJob).filter(SavedJob.job_id == jobId, SavedJob.user_id == user.id).delete()
 
     #Add fees to application
@@ -1417,10 +1223,6 @@ def v1_application_put(request):
     if not user.is_verified:
         return response(code='E012',extra='Not verified user',extra_finn='Käyttäjätiliä ei ole vahvistettu')
     
-    # if not user.is_complete():          #check if user's profile is completed
-    #     return response(code='E013',extra='User profile not completed')
-
-
     application_id = request.json_body.get('application_id')
     modified_pay = request.json_body.get('modified_pay')
     modified_hours = request.json_body.get('modified_hours')
@@ -1435,9 +1237,6 @@ def v1_application_put(request):
     if not ((application.employee_id == user.id) or (application.employer_id == user.id)):
         return response(code='E013',extra='You are not authorized to modify the application',extra_finn='Sinulla ei ole valtuuksia muuttaa hakemusta')
 
-    # if not job.negotiable:
-    #     return response(code='E013',extra='You cannot modify the application, the job is not negotiable')
-        
     if application.status > 3:
         return response(code='E013',extra='You are not authorized to modify the application as it has been started already',extra_finn='Et voi muuttaa hakemusta, koska se on jo hyväksytty')
 
@@ -1725,9 +1524,6 @@ def v1_application_active(request):
     if not user.is_verified:
         return response(code='E012',extra='Not verified user',extra_finn='Käyttäjätiliä ei ole vahvistettu')
     
-    # if not user.is_complete():          #check if user's profile is completed
-    #     return response(code='E013',extra='User profile not completed')
-
     sql = '''
     SELECT a.id,a.status,a.comment,a.created_at, a.actived_at, b.title,b.category, c.id as c_id, c.first_name, c.last_name,c.profile_pic,c.social_id, c.stars_as_employee, c.rated_by_as_employee,c.stars_as_employer,c.rated_by_as_employer, c.company_id
     FROM job_application AS a 
@@ -1868,17 +1664,6 @@ def v1_review(request):
     re.review = review
     re.thumbs_up = thumbs_up
     re.thumbs_down = thumbs_down
-
-    # if mark_as_favourite is True:
-    #     if application.status == 4 and user.id == application.employer_id:
-    #         if DBSession.query(FavouriteUser).filter(FavouriteUser.for_user == application.employer_id, FavouriteUser.fav_user_id == application.employee_id).count() == 0:
-    #             fav_user = FavouriteUser()
-    #             fav_user.for_user = user.id
-    #             fav_user.fav_user_id = application.employee_id
-    #             DBSession.add(fav_user)
-    #         else:
-    #             return response(code='E007', extra='This user has been favourited') # User already exists
-
 
     #Check and Set the application status
     if user.id == application.employer_id and application.status == 4:
@@ -2813,7 +2598,7 @@ def notfound(request):
 
 @view_config(route_name=v1+'_home', renderer='json')
 def v1_home(request):
-    return {'project': 'wetaskit', 'text':'Documentation at - https://api-wetaskit.rhcloud.com/docs/'}
+    return {'project': 'wetaskit', 'text':'Documentation at - '}
 
 @view_config(route_name='web', renderer='json')
 def v1_home(request):
