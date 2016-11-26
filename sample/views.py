@@ -63,7 +63,7 @@ client = sendgrid.SendGridClient(sendgrid_key)
 def send_welcome_mail(email,name):
     message = sendgrid.Mail()
     message.add_to(email)
-    message.set_from('care@skillfied.com')
+    message.set_from('')
     message.set_subject('Welcome to Skillfied!')
     message.set_html(u'<p> Hei <i>'+unicode(name)+u'</i> <br><br>\
                     Olen Tuomas, yksi Skillfiedin perustajista. Halusin laittaa sinulle sähköpostia henkilökohtaisesti ja toivottaa sinut lämpimästi tervetulleeksi Skillfied-yhteisöön.<br><br> \
@@ -77,7 +77,7 @@ def send_welcome_mail(email,name):
                     I\'m Tuomas, Co-Founder of Skillfied. I wanted to e-mail you personally and welcome you into Skillfied -community. <br><br> \
                     Together we form Skillfied and for every skill there\'s a job. Also you can receive help if you don\'t have the time to do everything.<br><br> \
                     This is a Beta-version, which we are using to gather your precious feedback. We value your feedback greatly. The beta-version doesn\'t include all the features but with this you can get familiar with our core functionalities as being an employer or employee. <br><br> \
-                    Help us perfecting our service by giving us feedbag via e-mail (care@skillfied.com) or on our Facebook page. <br><br> \
+                    Help us perfecting our service by giving us feedbag via e-mail or on our Facebook page. <br><br> \
                     So welcome to to change Finland one job at a time. <br><br> \
                     Tuomas Tiilikainen<br>weTask!t Oy - Skillfied</p>')
     client.send(message)
@@ -85,7 +85,7 @@ def send_welcome_mail(email,name):
 def send_password_mail(email,password):
     message = sendgrid.Mail()
     message.add_to(email)
-    message.set_from('care@skillfied.com')
+    message.set_from('')
     message.set_subject('WeTaskIt: Your Skillfied Password!')   
     message.set_html('Your new password is : <i>'+password+'</i>')
     client.send(message)
@@ -93,7 +93,7 @@ def send_password_mail(email,password):
 def send_verification_mail(email,token):
     message = sendgrid.Mail()
     message.add_to(email)
-    message.set_from('care@skillfied.com')
+    message.set_from('')
     message.set_subject('Please verify your email address for Skillfied')
     message.set_html('<p>Tervetuloa Skillfiediin <br><br>\
                     Paina alla olevaa linkkiä vahvistaaksesi sähköpostiosoitteesi <a href="https://api-wetaskit.rhcloud.com/verify_email/'+token+'">Vahvista sähköposti</a> <br><br><br><br> \
@@ -104,14 +104,14 @@ def send_verification_mail(email,token):
 def send_reset_mail(mailer,email,token):
     message = sendgrid.Mail()
     message.add_to(email)
-    message.set_from('care@skillfied.com')
+    message.set_from('')
     message.set_subject('WeTaskIt: Reset your password')
     message.set_html('<a href="https://api-wetaskit.rhcloud.com/web/reset_password.html?'+token+'">Reset Password</a>')
     client.send(message)
 
 def send_feedback_mail(email,feedback,name):
     message = sendgrid.Mail()
-    message.add_to('care@skillfied.com')
+    message.add_to('')
     message.set_from(email)
     message.set_subject(u'Skillfied: Feedbacks from '+unicode(name))
     message.set_html(u'<p>'+unicode(feedback)+u'</p>')
